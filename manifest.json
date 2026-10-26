@@ -1,0 +1,12 @@
+{
+  "name": "輕盈日記 - 綜合減重 App",
+  "short_name": "輕盈日記",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f5",
+  "theme_color": "#16a34a",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
