@@ -27,31 +27,13 @@ test('normalize 過濾無效數值', () => {
   assert.deepEqual(r.items, [{ name: 'x', portion: '1 份', kcal: 0, protein: 0, carbs: 10.3, fat: 0 }]);
 });
 
-test('estimateMeal 送出圖片與結構化輸出設定', async () => {
-  let sent;
-  class FakeSDK {
-    constructor(opts) {
-      this.opts = opts;
-      this.beta = { messages: { create: async (body) => {
-        sent = body;
-        return { stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(reply) }] };
-      } } };
-    }
-  }
-  const r = await AI.estimateMeal({ apiKey: 'k', image: { base64: 'AAA', mediaType: 'image/jpeg' }, note: '飯半碗', Anthropic: FakeSDK });
-  assert.deepEqual(r, reply);
-  assert.equal(sent.model, AI.MODEL);
-  assert.equal(sent.fallbacks, 'default');
-  assert.equal(sent.output_config.format.type, 'json_schema');
-  assert.equal(sent.messages[0].content[0].source.data, 'AAA');
-  assert.match(sent.messages[0].content[1].text, /飯半碗/);
+test('提示詞包含補充說明與 JSON 格式', () => {
+  const prompt = AI.buildPrompt('飯半碗');
+  assert.match(prompt, /補充說明：飯半碗/);
+  assert.match(prompt, /"items"/);
+  assert.doesNotMatch(AI.buildPrompt(''), /補充說明：/);
 });
 
-test('estimateMeal 處理拒絕回覆', async () => {
-  class FakeSDK {
-    constructor() {
-      this.beta = { messages: { create: async () => ({ stop_reason: 'refusal', content: [] }) } };
-    }
-  }
-  await assert.rejects(AI.estimateMeal({ apiKey: 'k', image: { base64: 'A', mediaType: 'image/jpeg' }, Anthropic: FakeSDK }), /無法分析/);
+test('App 不含任何 AI 連線功能', () => {
+  assert.deepEqual(Object.keys(AI).sort(), ['buildPrompt', 'normalize', 'parseReply']);
 });

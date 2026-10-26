@@ -1,6 +1,6 @@
 // 離線快取：網路優先，失敗時改用快取
-const CACHE = 'diet1-v3';
-const ASSETS = ['./', 'index.html', 'css/styles.css', 'js/calc.js', 'js/data.js', 'js/ai.js', 'js/workout.js', 'js/app.js', 'manifest.json', 'icon.svg'];
+const CACHE = 'diet1-v4';
+const ASSETS = ['./', 'index.html', 'css/styles.css', 'js/calc.js', 'js/data.js', 'js/ai.js', 'js/workout.js', 'js/app.js', 'manifest.json', 'icon.svg', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

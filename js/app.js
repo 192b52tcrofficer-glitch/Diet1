@@ -31,7 +31,6 @@
       halfLifeH: 5,
       waterMlPerKg: 35,
       containers: DEFAULT_CONTAINERS.map((c) => ({ ...c })),
-      apiKey: '',
       aiBuffer: 50,
     };
   }
@@ -66,6 +65,8 @@
   function migrate(data) {
     const s = Object.assign(defaultState(), data);
     s.settings = Object.assign(defaultSettings(), data.settings);
+    // 舊版曾儲存 API 金鑰，現在不再使用，直接刪除
+    delete s.settings.apiKey;
     if (s.profile && !s.profile.startDate) {
       const first = [...s.weights].sort((a, b) => a.date.localeCompare(b.date))[0];
       s.profile.startDate = first ? first.date : todayStr();
@@ -74,6 +75,7 @@
   }
 
   let state = loadState();
+  save();
   const ui = { tab: 'today', date: todayStr(), weightRange: 90 };
   let liveTimer = null;
 
@@ -1199,8 +1201,7 @@
       <section class="card">
         <h2>📷 AI 拍照估算</h2>
         <form id="aiForm" style="display:grid;gap:10px">
-          <label class="field">Claude API 金鑰（選填）<input name="apiKey" type="password" autocomplete="off" placeholder="sk-ant-..." value="${esc(s.apiKey)}"></label>
-          <p class="muted" style="margin:0">有金鑰就能在 App 內直接分析照片；金鑰只存在這台裝置，匯出備份時不會帶出。沒有金鑰也可以用「複製提示詞 → 貼到 ChatGPT → 貼回結果」。</p>
+          <p class="muted" style="margin:0">App 不會連線任何 AI，也不需要 API 金鑰。拍照估算時，App 只產生提示詞讓你貼到 ChatGPT 等 AI，再把回覆貼回來。</p>
           <label class="field">AI 估算額外加計緩衝（kcal）<input name="aiBuffer" type="number" min="0" max="300" step="10" value="${s.aiBuffer}"></label>
           <button class="btn" type="submit">儲存</button>
         </form>
@@ -1370,73 +1371,67 @@
     modalBody.querySelector('[name=kcal]').focus();
   }
 
-  // 📷 拍照估算：有金鑰直接用 Claude 分析；沒有就複製提示詞給 ChatGPT，再貼回結果
+  // 📷 拍照估算：App 不連線 AI。複製提示詞 → 到 ChatGPT 等 AI 附上照片詢問 → 把回覆貼回來解析
   function openPhotoEstimator(meal) {
     const s = state.settings;
-    let image = null;
+    let photo = null;
     modalBody.innerHTML = `
       <h3>📷 拍照估算熱量</h3>
-      <label class="photo-drop">
-        <input id="photoInput" type="file" accept="image/*" capture="environment" hidden>
-        <span id="photoHint">點這裡拍照或選照片</span>
-        <img id="photoPreview" alt="餐點照片" hidden>
-      </label>
+      <ol class="steps">
+        <li>填補充說明（選填），按「複製提示詞」</li>
+        <li>打開 ChatGPT 或任一 AI，貼上提示詞並附上餐點照片</li>
+        <li>把 AI 的回覆整段複製，貼到下面按「解析」</li>
+      </ol>
       <div class="grid-2">
         <label class="field">餐別${mealSelect(meal || guessMeal())}</label>
         <label class="field">補充說明<input id="photoNote" maxlength="100" placeholder="飯半碗、雞腿去皮、油炸…"></label>
       </div>
-      <div class="row">
-        <button class="btn grow" data-action="ai-claude" ${s.apiKey ? '' : 'disabled'}>✨ AI 分析</button>
-        <button class="btn ghost grow" data-action="ai-copy">📋 複製提示詞給 ChatGPT</button>
+      <button class="btn" data-action="ai-copy">📋 複製提示詞</button>
+      <div id="shareBox" hidden>
+        <label class="btn ghost small share-pick">🖼️ 或選照片，用「分享」一次傳給 AI App
+          <input id="photoInput" type="file" accept="image/*" hidden></label>
       </div>
-      ${s.apiKey ? '' : '<p class="muted" style="margin:0">到「設定」填入 Claude API 金鑰即可在 App 內直接分析；或把照片和提示詞貼到 ChatGPT，再把回覆貼回下面。</p>'}
-      <div id="pasteBox" class="paste-box" hidden>
-        <textarea id="aiReply" rows="4" placeholder="把 ChatGPT 的回覆貼在這裡"></textarea>
-        <button class="btn small" data-action="ai-parse">解析回覆</button>
-      </div>
+      <textarea id="promptText" rows="5" readonly hidden></textarea>
+      <label class="field">AI 的回覆
+        <textarea id="aiReply" rows="4" placeholder="把 AI 的回覆貼在這裡"></textarea></label>
+      <button class="btn ghost" data-action="ai-parse">解析回覆</button>
       <div id="aiResult"></div>`;
-
-    const input = modalBody.querySelector('#photoInput');
-    input.addEventListener('change', async () => {
-      const file = input.files[0];
-      if (!file) return;
-      try {
-        image = await AI.resizeImage(file);
-        const img = modalBody.querySelector('#photoPreview');
-        img.src = image.dataUrl;
-        img.hidden = false;
-        modalBody.querySelector('#photoHint').hidden = true;
-      } catch (err) {
-        toast(err.message);
-      }
-    });
 
     const note = () => modalBody.querySelector('#photoNote').value.trim();
     const result = modalBody.querySelector('#aiResult');
+    const shareBox = modalBody.querySelector('#shareBox');
 
-    photoActions.claude = async (btn) => {
-      if (!image) return toast('請先拍照或選照片');
-      btn.disabled = true;
-      btn.textContent = '分析中…';
-      result.innerHTML = '<p class="muted">AI 正在估算，約需 10–30 秒…</p>';
+    // 支援分享檔案的手機（如 iPhone）可以直接把照片＋提示詞分享到 ChatGPT App
+    const probe = typeof File === 'function' && new File([''], 'x.jpg', { type: 'image/jpeg' });
+    if (navigator.canShare && probe && navigator.canShare({ files: [probe] })) shareBox.hidden = false;
+
+    modalBody.querySelector('#photoInput').addEventListener('change', async (e) => {
+      photo = e.target.files[0];
+      if (!photo) return;
+      const text = AI.buildPrompt(note());
+      // 同時放進剪貼簿：有些 App 分享時只收照片、不收文字
+      navigator.clipboard && navigator.clipboard.writeText(text).catch(() => {});
       try {
-        showEstimate(await AI.estimateMeal({ apiKey: s.apiKey, image, note: note() }));
+        await navigator.share({ files: [photo], text });
       } catch (err) {
-        result.innerHTML = `<p class="warn-box">${esc(err.message)}</p>`;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '✨ AI 分析';
+        if (err.name !== 'AbortError') toast('無法分享，請改用「複製提示詞」');
       }
-    };
+    });
+
     photoActions.copy = async () => {
-      const text = AI.chatGPTPrompt(note());
+      const text = AI.buildPrompt(note());
+      const box = modalBody.querySelector('#promptText');
       try {
         await navigator.clipboard.writeText(text);
-        toast('已複製提示詞，連同照片貼到 ChatGPT');
+        box.hidden = true;
+        toast('已複製提示詞，到 AI 貼上並附上照片');
       } catch (err) {
-        result.innerHTML = `<p class="muted">請手動複製：</p><textarea rows="5" readonly>${esc(text)}</textarea>`;
+        // 不能自動複製時，顯示全文讓使用者手動複製
+        box.value = text;
+        box.hidden = false;
+        box.select();
+        toast('請手動複製下方提示詞');
       }
-      modalBody.querySelector('#pasteBox').hidden = false;
     };
     photoActions.parse = () => {
       const parsed = AI.parseReply(modalBody.querySelector('#aiReply').value);
@@ -1543,7 +1538,6 @@
     'add-food': (el) => openFoodPicker(el.dataset.meal),
     'quick-add': (el) => openQuickAdd(el.dataset.meal),
     'photo-food': (el) => openPhotoEstimator(el.dataset.meal),
-    'ai-claude': (el) => photoActions.claude(el),
     'ai-copy': () => photoActions.copy(),
     'ai-parse': () => photoActions.parse(),
     'custom-food': () => openCustomFood(),
@@ -1646,9 +1640,7 @@
       save(); toast(completed ? '🎉 斷食達標！' : '已結束斷食'); render();
     },
     export: () => {
-      // 備份檔不含 API 金鑰
-      const data = { ...state, settings: { ...state.settings, apiKey: '' } };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `diet1-backup-${todayStr()}.json`;
@@ -1725,7 +1717,7 @@
       toast('已儲存進食時段');
     },
     aiForm(f) {
-      Object.assign(state.settings, { apiKey: f.apiKey.value.trim(), aiBuffer: Math.max(0, +f.aiBuffer.value || 0) });
+      state.settings.aiBuffer = Math.max(0, +f.aiBuffer.value || 0);
       toast('已儲存');
     },
     drinkForm(f) {
@@ -1769,9 +1761,7 @@
       const data = JSON.parse(text);
       if (!data || typeof data !== 'object' || !('days' in data)) throw new Error('格式不符');
       if (!confirm('匯入會覆蓋目前所有資料，確定嗎？')) return;
-      const apiKey = state.settings.apiKey;
       state = migrate(data);
-      if (!state.settings.apiKey) state.settings.apiKey = apiKey;
       save(); toast('匯入成功'); render();
     }).catch((err) => toast('匯入失敗：' + err.message));
   });
