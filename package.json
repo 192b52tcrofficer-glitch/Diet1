@@ -1,0 +1,10 @@
+{
+  "name": "diet1",
+  "version": "1.0.0",
+  "private": true,
+  "description": "輕盈日記：綜合減重 App（熱量、營養素、運動、喝水、體重、間歇性斷食）",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test"
+  }
+}

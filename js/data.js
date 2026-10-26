@@ -1,0 +1,172 @@
+// 內建食物與運動資料庫（數值為常見份量的估計值）
+(function (root) {
+  // [名稱, 份量, 熱量 kcal, 蛋白質 g, 碳水 g, 脂肪 g, 分類]
+  const FOODS = [
+    ['白飯', '1 碗 (200g)', 280, 5, 62, 0.6, '主食'],
+    ['糙米飯', '1 碗 (200g)', 250, 5.5, 52, 2, '主食'],
+    ['地瓜', '1 條 (150g)', 130, 1.5, 30, 0.2, '主食'],
+    ['燕麥片', '40g', 150, 5, 27, 2.8, '主食'],
+    ['全麥吐司', '1 片', 80, 3.5, 14, 1, '主食'],
+    ['白吐司', '1 片', 90, 3, 17, 1.2, '主食'],
+    ['饅頭', '1 個', 280, 8, 56, 2, '主食'],
+    ['陽春麵', '1 碗', 350, 10, 65, 5, '主食'],
+    ['水餃', '10 顆', 500, 20, 55, 22, '主食'],
+    ['滷肉飯', '1 小碗', 500, 13, 60, 22, '外食'],
+    ['雞腿便當', '1 份', 850, 38, 95, 35, '外食'],
+    ['排骨便當', '1 份', 900, 32, 100, 40, '外食'],
+    ['牛肉麵', '1 碗', 650, 35, 70, 24, '外食'],
+    ['蛋餅', '1 份', 250, 8, 28, 12, '外食'],
+    ['鮪魚飯糰', '1 個', 220, 7, 40, 4, '外食'],
+    ['御飯糰（超商）', '1 個', 190, 4.5, 38, 2.5, '外食'],
+    ['茶葉蛋', '1 顆', 75, 7, 0.5, 5, '蛋白質'],
+    ['水煮蛋', '1 顆', 75, 7, 0.5, 5, '蛋白質'],
+    ['雞胸肉', '100g', 120, 23, 0, 2.5, '蛋白質'],
+    ['即食雞胸', '1 包', 110, 22, 2, 1.5, '蛋白質'],
+    ['鮭魚', '100g', 200, 20, 0, 13, '蛋白質'],
+    ['豬里肌', '100g', 190, 21, 0, 11, '蛋白質'],
+    ['牛腱', '100g', 130, 21, 0, 4.5, '蛋白質'],
+    ['板豆腐', '100g', 90, 9, 3, 4.5, '蛋白質'],
+    ['無糖豆漿', '1 杯 (400ml)', 140, 14, 6, 7, '飲品'],
+    ['鮮奶', '1 杯 (240ml)', 150, 7.5, 11, 8, '飲品'],
+    ['希臘優格（無糖）', '100g', 100, 10, 4, 5, '蛋白質'],
+    ['乳清蛋白', '1 匙 (30g)', 120, 24, 3, 1.5, '蛋白質'],
+    ['燙青菜', '1 份', 60, 2, 5, 3.5, '蔬菜'],
+    ['花椰菜', '100g', 35, 3, 6, 0.4, '蔬菜'],
+    ['生菜沙拉（無醬）', '1 份', 30, 1.5, 5, 0.3, '蔬菜'],
+    ['香蕉', '1 根', 105, 1.3, 27, 0.4, '水果'],
+    ['蘋果', '1 顆', 95, 0.5, 25, 0.3, '水果'],
+    ['芭樂', '1 顆', 70, 1.5, 15, 0.6, '水果'],
+    ['奇異果', '1 顆', 50, 1, 12, 0.4, '水果'],
+    ['堅果', '1 小把 (15g)', 90, 3, 3, 8, '油脂'],
+    ['酪梨', '半顆', 120, 1.5, 6, 11, '油脂'],
+    ['珍珠奶茶（全糖）', '1 杯 (700ml)', 650, 5, 110, 20, '飲品'],
+    ['珍珠奶茶（微糖）', '1 杯 (700ml)', 450, 5, 70, 18, '飲品'],
+    ['無糖綠茶', '1 杯', 0, 0, 0, 0, '飲品'],
+    ['美式咖啡', '1 杯', 10, 0.3, 1, 0, '飲品'],
+    ['拿鐵', '1 杯 (中)', 180, 9, 14, 9, '飲品'],
+    ['可樂', '1 罐 (330ml)', 140, 0, 35, 0, '飲品'],
+    ['啤酒', '1 罐 (330ml)', 145, 1, 12, 0, '飲品'],
+    ['鹹酥雞', '1 份', 600, 30, 30, 40, '點心'],
+    ['洋芋片', '1 包 (60g)', 330, 4, 32, 21, '點心'],
+    ['巧克力', '1 片 (20g)', 110, 1.5, 12, 6.5, '點心'],
+    ['雞排', '1 片', 650, 35, 35, 40, '點心'],
+  ].map(([name, serving, kcal, protein, carbs, fat, category]) => ({
+    name, serving, kcal, protein, carbs, fat, category,
+  }));
+
+  // [名稱, MET 值]
+  const EXERCISES = [
+    ['快走', 4.3],
+    ['慢跑', 7],
+    ['跑步（10 km/h）', 9.8],
+    ['騎腳踏車（休閒）', 4],
+    ['飛輪', 8.5],
+    ['游泳', 6],
+    ['跳繩', 11],
+    ['重量訓練', 5],
+    ['HIIT', 8],
+    ['瑜伽', 2.5],
+    ['爬樓梯', 8],
+    ['登山', 6.5],
+    ['羽球', 5.5],
+    ['籃球', 6.5],
+    ['跳舞', 5],
+    ['家事', 3],
+  ].map(([name, met]) => ({ name, met }));
+
+  const FASTING_PLANS = [
+    { id: '12:12', fastHours: 12, label: '12:12 入門' },
+    { id: '14:10', fastHours: 14, label: '14:10' },
+    { id: '16:8', fastHours: 16, label: '16:8 最常見' },
+    { id: '18:6', fastHours: 18, label: '18:6' },
+    { id: '20:4', fastHours: 20, label: '20:4 戰士' },
+    { id: '23:1', fastHours: 23, label: 'OMAD 一日一餐' },
+  ];
+
+  const MEALS = [
+    { id: 'breakfast', label: '早餐' },
+    { id: 'lunch', label: '午餐' },
+    { id: 'dinner', label: '晚餐' },
+    { id: 'snack', label: '點心' },
+  ];
+
+  // 平日要戒的含糖飲料與精緻甜食
+  const SUGARY = new Set(['珍珠奶茶（全糖）', '珍珠奶茶（微糖）', '可樂', '巧克力', '洋芋片']);
+  FOODS.forEach((f) => (f.sugary = SUGARY.has(f.name)));
+
+  // 平日飲食規則（影片中的飲食結構調整）
+  const HABITS = [
+    { id: 'noSugarDrink', label: '不喝含糖手搖飲' },
+    { id: 'noSweets', label: '不吃精緻甜食' },
+    { id: 'lessOily', label: '少高油、重調味加工食品' },
+    { id: 'waterCoffee', label: '只喝白開水／黑咖啡' },
+  ];
+
+  const DEFAULT_CONTAINERS = [
+    { id: 'bottle', name: '保溫瓶', ml: 500, icon: '🧴' },
+    { id: 'mug', name: '馬克杯', ml: 350, icon: '☕' },
+    { id: 'glass', name: '一杯', ml: 250, icon: '🥛' },
+  ];
+
+  // [名稱, 咖啡因 mg, 熱量 kcal]（約略值，不同店家差異大）
+  const CAFFEINE_DRINKS = [
+    ['黑咖啡／美式（中杯）', 150, 10],
+    ['黑咖啡／美式（大杯）', 200, 15],
+    ['拿鐵（中杯）', 150, 180],
+    ['濃縮 1 shot', 65, 5],
+    ['冷萃咖啡（中杯）', 200, 5],
+    ['罐裝咖啡', 100, 120],
+    ['紅茶／奶茶（中杯）', 60, 0],
+    ['綠茶（中杯）', 40, 0],
+    ['能量飲料（1 罐）', 80, 110],
+    ['可樂（1 罐）', 35, 140],
+  ].map(([name, mg, kcal]) => ({ name, mg, kcal }));
+
+  // 自煮：每克咖啡粉約可萃取的咖啡因（mg）
+  const BREW_METHODS = [
+    { id: 'pourover', label: '手沖', mgPerGram: 10 },
+    { id: 'espresso', label: '義式濃縮', mgPerGram: 6 },
+    { id: 'frenchpress', label: '法式濾壓', mgPerGram: 9 },
+    { id: 'coldbrew', label: '冷萃', mgPerGram: 8 },
+  ];
+
+  // 烘焙度對咖啡因的修正（深焙每克略少）
+  const ROAST_LEVELS = [
+    { id: 'light', label: '淺焙', factor: 1.05 },
+    { id: 'medium', label: '中焙', factor: 1 },
+    { id: 'dark', label: '深焙', factor: 0.92 },
+  ];
+
+  // 居家徒手訓練動作
+  const MOVES = {
+    jumpingJack: '開合跳',
+    squat: '深蹲',
+    pushup: '伏地挺身',
+    plank: '棒式',
+    lunge: '弓箭步',
+    highKnees: '原地高抬腿',
+    burpee: '波比跳',
+    mountainClimber: '登山者',
+    glute: '臀橋',
+    crunch: '捲腹',
+    sidePlank: '側棒式',
+    wallSit: '靠牆深蹲',
+    tricepDip: '椅子撐體',
+    stepUp: '登階',
+    stretch: '伸展',
+  };
+
+  const WORKOUT_PRESETS = [
+    {
+      id: '7min', name: '7 分鐘全身', met: 8, work: 30, rest: 10, rounds: 1,
+      moves: ['jumpingJack', 'wallSit', 'pushup', 'crunch', 'stepUp', 'squat', 'tricepDip', 'plank', 'highKnees', 'lunge', 'pushup', 'sidePlank'],
+    },
+    { id: 'hiit20', name: '燃脂 HIIT', met: 8, work: 40, rest: 20, rounds: 4, moves: ['burpee', 'mountainClimber', 'squat', 'highKnees', 'jumpingJack'] },
+    { id: 'core10', name: '核心 10 分鐘', met: 4, work: 45, rest: 15, rounds: 2, moves: ['plank', 'crunch', 'glute', 'sidePlank', 'mountainClimber'] },
+    { id: 'office5', name: '辦公室微運動', met: 3.5, work: 40, rest: 10, rounds: 1, moves: ['squat', 'wallSit', 'lunge', 'tricepDip', 'stretch', 'stretch'] },
+  ];
+
+  root.AppData = {
+    FOODS, EXERCISES, FASTING_PLANS, MEALS, HABITS, DEFAULT_CONTAINERS, CAFFEINE_DRINKS, BREW_METHODS, ROAST_LEVELS, MOVES, WORKOUT_PRESETS,
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
