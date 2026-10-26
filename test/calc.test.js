@@ -61,3 +61,53 @@ test('依趨勢預估達標日期', () => {
   assert.equal(Calc.projectGoalDate(entries, 70).reached, true);
   assert.equal(Calc.projectGoalDate([entries[0]], 65), null);
 });
+
+test('飲水建議範圍為體重 × 30–40 ml', () => {
+  assert.deepEqual(Calc.waterRangeMl(60), { min: 1800, max: 2400 });
+  assert.equal(Calc.waterTargetMl(60, 30), 1800);
+});
+
+test('咖啡因依半衰期衰減', () => {
+  const t0 = Date.UTC(2026, 0, 1, 8);
+  const doses = [{ mg: 200, time: t0 }];
+  assert.equal(Calc.caffeineAt(doses, t0, 5), 200);
+  assert.equal(Calc.caffeineAt(doses, t0 + 5 * 3600000, 5), 100);
+  assert.equal(Calc.caffeineAt(doses, t0 + 10 * 3600000, 5), 50);
+  assert.equal(Calc.caffeineAt(doses, t0 - 1, 5), 0, '還沒喝的不算');
+  // 200 mg 降到 50 mg 需要兩個半衰期
+  assert.equal(Calc.caffeineClearTime(doses, t0, 5, 50), t0 + 10 * 3600000);
+  assert.equal(Calc.caffeineDailyLimit(80), 400);
+  assert.equal(Calc.caffeineDailyLimit(50), 300);
+});
+
+test('訓練負荷：7 天對 28 天', () => {
+  assert.equal(Calc.sessionLoad(6, 30), 180);
+  const steady = Array(28).fill(100);
+  assert.equal(Calc.trainingLoadStatus(steady).level, 'steady');
+  const spike = [...Array(21).fill(50), ...Array(7).fill(200)];
+  assert.equal(Calc.trainingLoadStatus(spike).level, 'very-high');
+  const drop = [...Array(21).fill(200), ...Array(7).fill(20)];
+  assert.equal(Calc.trainingLoadStatus(drop).level, 'low');
+  assert.equal(Calc.trainingLoadStatus(Array(28).fill(0)).level, 'none');
+  assert.equal(Calc.trainingLoadStatus(spike, 7).level, 'building', '資料不足 3 週不下結論');
+});
+
+test('固定進食窗口 12:00–20:00', () => {
+  const at = (h, m = 0) => new Date(2026, 0, 1, h, m);
+  const lunch = Calc.feedingWindow(at(13), '12:00', '20:00');
+  assert.equal(lunch.eating, true);
+  assert.equal(lunch.msUntilChange, 7 * 3600000);
+  assert.equal(lunch.fastHours, 16);
+  const night = Calc.feedingWindow(at(22), '12:00', '20:00');
+  assert.equal(night.eating, false);
+  assert.equal(night.msUntilChange, 14 * 3600000);
+  const cross = Calc.feedingWindow(at(1), '18:00', '02:00');
+  assert.equal(cross.eating, true, '跨午夜的窗口');
+  assert.equal(cross.windowHours, 8);
+});
+
+test('記錄策略：前 14 天養成期', () => {
+  assert.deepEqual(Calc.trackingPhase('2026-01-01', '2026-01-01'), { day: 1, strict: true, strictDays: 14 });
+  assert.equal(Calc.trackingPhase('2026-01-01', '2026-01-14').strict, true);
+  assert.equal(Calc.trackingPhase('2026-01-01', '2026-01-15').strict, false);
+});

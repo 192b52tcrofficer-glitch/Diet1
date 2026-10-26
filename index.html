@@ -18,6 +18,7 @@
       <span id="dateLabel"></span>
       <button type="button" data-action="next-day" aria-label="後一天">›</button>
     </div>
+    <button type="button" class="gear" data-tab="settings" aria-label="設定">⚙️</button>
   </header>
 
   <main id="view" class="view"></main>
@@ -25,10 +26,10 @@
   <nav class="tabbar" id="tabbar">
     <button type="button" data-tab="today"><span>🏠</span>今日</button>
     <button type="button" data-tab="food"><span>🍱</span>飲食</button>
+    <button type="button" data-tab="drinks"><span>💧</span>飲品</button>
     <button type="button" data-tab="exercise"><span>🏃</span>運動</button>
     <button type="button" data-tab="weight"><span>⚖️</span>體重</button>
     <button type="button" data-tab="fasting"><span>⏱️</span>斷食</button>
-    <button type="button" data-tab="settings"><span>⚙️</span>設定</button>
   </nav>
 
   <dialog id="modal"><div id="modalBody"></div></dialog>
@@ -36,6 +37,8 @@
 
   <script src="js/calc.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/workout.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

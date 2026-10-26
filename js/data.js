@@ -90,5 +90,83 @@
     { id: 'snack', label: '點心' },
   ];
 
-  root.AppData = { FOODS, EXERCISES, FASTING_PLANS, MEALS };
+  // 平日要戒的含糖飲料與精緻甜食
+  const SUGARY = new Set(['珍珠奶茶（全糖）', '珍珠奶茶（微糖）', '可樂', '巧克力', '洋芋片']);
+  FOODS.forEach((f) => (f.sugary = SUGARY.has(f.name)));
+
+  // 平日飲食規則（影片中的飲食結構調整）
+  const HABITS = [
+    { id: 'noSugarDrink', label: '不喝含糖手搖飲' },
+    { id: 'noSweets', label: '不吃精緻甜食' },
+    { id: 'lessOily', label: '少高油、重調味加工食品' },
+    { id: 'waterCoffee', label: '只喝白開水／黑咖啡' },
+  ];
+
+  const DEFAULT_CONTAINERS = [
+    { id: 'bottle', name: '保溫瓶', ml: 500, icon: '🧴' },
+    { id: 'mug', name: '馬克杯', ml: 350, icon: '☕' },
+    { id: 'glass', name: '一杯', ml: 250, icon: '🥛' },
+  ];
+
+  // [名稱, 咖啡因 mg, 熱量 kcal]（約略值，不同店家差異大）
+  const CAFFEINE_DRINKS = [
+    ['黑咖啡／美式（中杯）', 150, 10],
+    ['黑咖啡／美式（大杯）', 200, 15],
+    ['拿鐵（中杯）', 150, 180],
+    ['濃縮 1 shot', 65, 5],
+    ['冷萃咖啡（中杯）', 200, 5],
+    ['罐裝咖啡', 100, 120],
+    ['紅茶／奶茶（中杯）', 60, 0],
+    ['綠茶（中杯）', 40, 0],
+    ['能量飲料（1 罐）', 80, 110],
+    ['可樂（1 罐）', 35, 140],
+  ].map(([name, mg, kcal]) => ({ name, mg, kcal }));
+
+  // 自煮：每克咖啡粉約可萃取的咖啡因（mg）
+  const BREW_METHODS = [
+    { id: 'pourover', label: '手沖', mgPerGram: 10 },
+    { id: 'espresso', label: '義式濃縮', mgPerGram: 6 },
+    { id: 'frenchpress', label: '法式濾壓', mgPerGram: 9 },
+    { id: 'coldbrew', label: '冷萃', mgPerGram: 8 },
+  ];
+
+  // 烘焙度對咖啡因的修正（深焙每克略少）
+  const ROAST_LEVELS = [
+    { id: 'light', label: '淺焙', factor: 1.05 },
+    { id: 'medium', label: '中焙', factor: 1 },
+    { id: 'dark', label: '深焙', factor: 0.92 },
+  ];
+
+  // 居家徒手訓練動作
+  const MOVES = {
+    jumpingJack: '開合跳',
+    squat: '深蹲',
+    pushup: '伏地挺身',
+    plank: '棒式',
+    lunge: '弓箭步',
+    highKnees: '原地高抬腿',
+    burpee: '波比跳',
+    mountainClimber: '登山者',
+    glute: '臀橋',
+    crunch: '捲腹',
+    sidePlank: '側棒式',
+    wallSit: '靠牆深蹲',
+    tricepDip: '椅子撐體',
+    stepUp: '登階',
+    stretch: '伸展',
+  };
+
+  const WORKOUT_PRESETS = [
+    {
+      id: '7min', name: '7 分鐘全身', met: 8, work: 30, rest: 10, rounds: 1,
+      moves: ['jumpingJack', 'wallSit', 'pushup', 'crunch', 'stepUp', 'squat', 'tricepDip', 'plank', 'highKnees', 'lunge', 'pushup', 'sidePlank'],
+    },
+    { id: 'hiit20', name: '燃脂 HIIT', met: 8, work: 40, rest: 20, rounds: 4, moves: ['burpee', 'mountainClimber', 'squat', 'highKnees', 'jumpingJack'] },
+    { id: 'core10', name: '核心 10 分鐘', met: 4, work: 45, rest: 15, rounds: 2, moves: ['plank', 'crunch', 'glute', 'sidePlank', 'mountainClimber'] },
+    { id: 'office5', name: '辦公室微運動', met: 3.5, work: 40, rest: 10, rounds: 1, moves: ['squat', 'wallSit', 'lunge', 'tricepDip', 'stretch', 'stretch'] },
+  ];
+
+  root.AppData = {
+    FOODS, EXERCISES, FASTING_PLANS, MEALS, HABITS, DEFAULT_CONTAINERS, CAFFEINE_DRINKS, BREW_METHODS, ROAST_LEVELS, MOVES, WORKOUT_PRESETS,
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

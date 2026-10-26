@@ -52,8 +52,8 @@
     return { protein, fat, carbs };
   }
 
-  function waterTargetMl(weightKg) {
-    return Math.round((weightKg * 35) / 50) * 50;
+  function waterTargetMl(weightKg, mlPerKg = 35) {
+    return Math.round((weightKg * mlPerKg) / 50) * 50;
   }
 
   function exerciseKcal(met, weightKg, minutes) {
@@ -95,8 +95,91 @@
     return { reached: false, slopePerWeek: slope * 7, date: date.toISOString().slice(0, 10) };
   }
 
+  // 建議飲水範圍：體重 × 30–40 ml
+  function waterRangeMl(weightKg) {
+    return { min: Math.round(weightKg * 30), max: Math.round(weightKg * 40) };
+  }
+
+  // 體內咖啡因殘留（mg）：每份依半衰期指數衰減後加總
+  function caffeineAt(doses, atMs, halfLifeH) {
+    let total = 0;
+    for (const d of doses) {
+      if (d.time > atMs) continue;
+      total += d.mg * Math.pow(0.5, (atMs - d.time) / (halfLifeH * 3600000));
+    }
+    return Math.round(total);
+  }
+
+  // 一般成人每日上限 400 mg；體重較輕者以 6 mg/kg 為上限
+  function caffeineDailyLimit(weightKg) {
+    return Math.min(400, Math.round(weightKg * 6));
+  }
+
+  // 殘留降到門檻以下的最早時間（之後不再攝取的前提下）
+  function caffeineClearTime(doses, fromMs, halfLifeH, thresholdMg) {
+    const now = caffeineAt(doses, fromMs, halfLifeH);
+    if (now <= thresholdMg) return fromMs;
+    const hours = halfLifeH * Math.log2(now / thresholdMg);
+    return fromMs + Math.ceil(hours * 60) * 60000;
+  }
+
+  // 訓練負荷（session-RPE）：自覺強度 1–10 × 分鐘
+  function sessionLoad(rpe, minutes) {
+    return Math.round(rpe * minutes);
+  }
+
+  // 比較近 7 天與近 28 天的平均每日負荷，類似 Apple Watch 的訓練負荷趨勢
+  // historyDays：從第一次運動紀錄到今天的天數，不足 21 天時 28 天平均還不可靠
+  function trainingLoadStatus(dailyLoads, historyDays = 28) {
+    const last = (n) => dailyLoads.slice(-n);
+    const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+    const acute = avg(last(7));
+    const chronic = avg(last(28));
+    if (chronic === 0) return { acute: Math.round(acute), chronic: 0, ratio: null, level: acute > 0 ? 'building' : 'none' };
+    const ratio = Math.round((acute / chronic) * 100) / 100;
+    if (historyDays < 21) return { acute: Math.round(acute), chronic: Math.round(chronic), ratio, level: 'building' };
+    let level = 'steady';
+    if (ratio < 0.8) level = 'low';
+    else if (ratio > 1.5) level = 'very-high';
+    else if (ratio > 1.3) level = 'high';
+    return { acute: Math.round(acute), chronic: Math.round(chronic), ratio, level };
+  }
+
+  function minutesOfDay(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  // 固定進食窗口（如 12:00–20:00）：判斷現在是否可進食，以及下一次切換的時間
+  function feedingWindow(now, startHHMM, endHHMM) {
+    const start = minutesOfDay(startHHMM);
+    const end = minutesOfDay(endHHMM);
+    const cur = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    const crosses = end <= start;
+    const eating = crosses ? cur >= start || cur < end : cur >= start && cur < end;
+    const target = eating ? end : start;
+    let diff = target - cur;
+    if (diff <= 0) diff += 1440;
+    const windowMin = crosses ? end + 1440 - start : end - start;
+    return { eating, msUntilChange: Math.round(diff * 60000), windowHours: windowMin / 60, fastHours: 24 - windowMin / 60 };
+  }
+
+  // 記錄策略：前 14 天為「養成期」每餐記錄，之後進入「自然期」
+  function trackingPhase(startDate, today, strictDays = 14) {
+    const day = Math.floor((Date.parse(today) - Date.parse(startDate)) / 86400000) + 1;
+    return { day, strict: day <= strictDays, strictDays };
+  }
+
   const Calc = {
     KCAL_PER_KG_FAT,
+    waterRangeMl,
+    caffeineAt,
+    caffeineDailyLimit,
+    caffeineClearTime,
+    sessionLoad,
+    trainingLoadStatus,
+    feedingWindow,
+    trackingPhase,
     ACTIVITY_LEVELS,
     bmr,
     tdee,
